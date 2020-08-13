@@ -1,0 +1,461 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+import re
+import pandas as pd
+import math
+import PIL
+from PIL import Image
+
+# 根据角度和长度移动坐标点，返回值为坐标（x_new,y_new）
+def coodinate_moving_by_angle(coodinate=None, move_length=None, move_absolute_angle=None, ):
+    x,y = coodinate[0],coodinate[1]
+#     length_bp = length_bp
+    if move_absolute_angle!=None:
+        angle_l = move_absolute_angle
+        angle_l = math.pi*angle_l/180
+        x1 = x + math.cos(angle_l)*move_length
+        y1 = y - math.sin(angle_l)*move_length
+    return x1,y1
+
+# 根据坐标绘制线段
+def line_segment(coodinate_start, coodinate_end, color='k', linewidth=1.0):
+    x, y = coodinate_start
+    x1 ,y1 = coodinate_end
+    plt.plot([x, x1], [y, y1], color=color, linewidth=linewidth, linestyle='-')
+
+# 根据角度和长度绘制线段
+def tRNA_clover_frame_unit(coodinate=None, length_bp=None, color='k', linewidth=1.0, absolute_angle=None, ):
+    x, y = coodinate
+    x1 ,y1 = coodinate_moving_by_angle(coodinate=coodinate, move_length=length_bp, move_absolute_angle=absolute_angle,  )
+    plt.plot([x, x1], [y, y1], color=color, linewidth=linewidth, linestyle='-', zorder=1)
+
+# 根据角度和长度绘制碱基互补双键三键等等
+# space_angle 键与键散开时的方向
+# absolute_angle 双键方向
+def base_complementary(bond_number=None, coodinate=None, length_bp=None, color='k', linewidth=1.0, spacewidth=None, space_angle=None, absolute_angle=None,  ):
+    def coodinate_determine(bond_number=None, coodinate=None, spacewidth=None, linewidth=None, space_angle=None, absolute_angle=None,):
+        coodinate_determine_list =[]
+        num = (bond_number-1) / 2
+        for i in range(bond_number):
+            coodinate_determine_list.append(coodinate_moving_by_angle(coodinate=coodinate, move_length=-num*spacewidth, move_absolute_angle=space_angle))
+            num-=1
+        return coodinate_determine_list
+    coodinate_determ = coodinate_determine(bond_number=bond_number, coodinate=coodinate, linewidth=linewidth, spacewidth=spacewidth, space_angle=space_angle, absolute_angle=absolute_angle,)
+#     numpy_array = np.array(coodinate_determ).T
+#     print(numpy_array)
+#     plt.scatter(numpy_array[0], numpy_array[1], s=2, c='r', alpha=1,)
+#     plt.xlim(-20, 20)
+#     plt.ylim(-20, 20)
+    for coo in coodinate_determ:
+        tRNA_clover_frame_unit(coodinate=coo, length_bp=length_bp, color=color, linewidth=linewidth, absolute_angle=absolute_angle, )
+
+def page_set(figsize=(60,60), limsize=(600,600)):
+    plt.figure(figsize=figsize)
+    plt.xlim(0,limsize[0])
+    plt.ylim(0,limsize[1])
+    
+def circle_plot():
+    circle_base=plt.Circle((5,5), radius=2, facecolor ='#3695ec',alpha=1, lw=6, edgecolor='#888888',)
+    plt.gcf().gca().add_artist(circle_base)
+
+def remove_outline():
+    plt.gca().spines['right'].set_color('none') #去掉边框
+    plt.gca().spines['top'].set_color('none') #去掉边框
+    # plt.gca().spines['left'].set_color('none') #去掉边框
+    # plt.gca().spines['bottom'].set_color('none') #去掉边框
+    # plt.xticks([])  #去掉x轴
+    # plt.yticks([])  #去掉y轴
+    plt.axis('off')  #去掉坐标轴
+
+
+# tRNA_s = 'CGGACUCCUCCCUUAACUUGAGAGUAGAAAUUACAUACUUUAAUUCCAAAAUUGGCAAUUUGAUGAAUCC'
+# tRNA_t = '.(((.(((((.(.......).)))....(((((.......))))).((((........))))..)).)))'
+# tRNA_s = 'CCUCUAUGGCUCUUAACUUGAGCUUGAAGAAUGCACGUUUCAUUCAUAAGAUGGUUUAACUUAAUACAGGG'
+# tRNA_t = '.((((.((((((.......)))))....(((((.......))))).((((.........))))..).))))'
+# tRNA_s = 'UUUGCCCGUUUUCUUAGCGUGAAAGUAGAUUACCUGUACUCGGUAAAUACAAUGAUAAUGUGGUUGGGCGU'
+# tRNA_t = '..(((((((((((.......)))))....(((((.......))))).((((.......))))..)))))).'
+# tRNA_s = 'CGGACUCCUCCCUUAACUUGAGAGUAGAAAUUACAUACUUUAAUUCCAAAAUUGGCAAUUUGAUGAAUCC'
+# tRNA_t = '.(((.(((((.(.......).)))....(((((.......))))).((((........))))..)).)))'
+# tRNA_s = 'CGGACUCCUCCCUUAACUUGAGAGUAGAAAUUACAUACUUUAAUUCCAAAAUUGGCAAUUUGAUGAAUCC'
+# tRNA_t = '.(((.(((((.(.......).)))....(..((.......))..).((((........))))..)).)))'
+
+
+def oOlocus(tRNA_t):
+
+    tRNA_t_len=int((len(tRNA_t)-1)/2)
+    for i in range(1,tRNA_t_len):
+        if not (tRNA_t[i]=='(' and tRNA_t[-i] ==')' or tRNA_t[i]== tRNA_t[-i]):
+            first=i
+            print('first =',first)
+            break
+
+    pattern2 = r'\(\.+\)'
+    pattern2 = re.compile(pattern2)
+    result = pattern2.finditer(tRNA_t,first)
+    circle = []
+    for i in result:
+        circle.append(i.span())
+        print(i)
+    print(circle)
+
+    # pattern = r'(?P<a>\(+)\.+(?P=a)' 
+    # .(((.(((((((.......))))).....(((((.......))))).((((........))))..)).)))
+    
+    pattern = r'\)\.+\('
+    # pattern = r'\(+\.+\)+'
+    pattern = re.compile(pattern)
+    result = pattern.finditer(tRNA_t,first)
+
+    Circl_ = []
+    for i in result:
+        Circl_.append(i.span())
+        print(i)
+    print(Circl_)
+
+    a_Circle_a = first
+    while tRNA_t[a_Circle_a-1] == '.':
+        a_Circle_a -= 1 
+    # a_Circle_a = circle[0][0]-(Circl_[0][0]-circle[0][1])-1
+    # print(first)
+    # print(a_Circle_a)
+    z_Circle_z = circle[-1][1] + (circle[-1][0]-Circl_[-1][1]) + 1
+    # z = len(t) - a_Circle_a -1
+
+    Circle = []
+    for i in range(len(circle)):
+        if i == 0 :
+            Circle.append((a_Circle_a,Circl_[0][0]+1))
+        elif i == len(circle)-1:
+            Circle.append((Circl_[-1][1]-1,z_Circle_z))
+        else:
+            Circle.append((Circl_[i-1][1]-1,Circl_[i][0]+1))
+    # Circle = [(a_Circle_a,Circle[0][0]+1),(Circle[0][1]-1,Circle[1][0]+1),(Circle[1][1]-1,z_Circle_z)] # [(7, 24), (29, 46), (47, 63)]
+    print(Circle)
+
+    ar = np.array([Circle,circle])
+    ar = ar.reshape((len(Circle)+len(circle))*2)
+    ar = np.hstack((ar,first,len(tRNA_t)))
+    ar.sort()
+    return ar,circle,Circle 
+# print('oOlocus(tRNA_t)=',oOlocus(tRNA_t))
+# print('------------------------------')
+# t_second = oOlocus(tRNA_t)[0]
+# print('t_second=',t_second)
+
+
+def getStructure(t_second):
+    # 'O':表示中间大圈上的位点
+    # 'o':表示外面小圈上的位点
+    
+    # y = '-'*(first-1) + 'O'*(Circle[0][0]-first+2) + '-'*(circle[0][0]-Circle[0][0]-1) + 'o'*(circle[0][1]-circle[0][0]) + '-'*(Circle[0][1]-circle[0][1]-1) + 'O'*(Circle[1][0]-Circle[0][1]+2) + '-'*(circle[1][0]-Circle[1][0]-1) + 'o'*(circle[1][1]-circle[1][0]) + '-'*(Circle[1][1]-circle[1][1]-1) + 'O'*(Circle[2][0]-Circle[1][1]+2) + '-'*(circle[2][0]-Circle[2][0]-1) + 'o'*(circle[2][1]-circle[2][0]) + '-'*(Circle[2][1]-circle[2][1]-1) + 'O'*(len(t)-(first-1)-Circle[2][1]+2) + '-'*((first-1)-1)
+    # print(y)
+    # y = '-'*(ar[0]-1)'O'*(ar[1]-ar[0]+2) + '-'*(ar[2]-ar[1]-1) + 'o'*(ar[3]-ar[2]) + '-'*(ar[4]-ar[3]-1) + 'O'*(ar[5]-ar[4]+2) + '-'*(ar[6]-ar[5]-1) + 'o'*(ar[7]-ar[6]) + '-'*(ar[8]-ar[7]-1) + 'O'*(ar[9]-ar[8]+2) + '-'*(ar[10]-ar[9]-1) + 'o'*(ar[11]-ar[10]) + '-'*(ar[12]-ar[11]-1) + 'O'*(ar[-1]-(ar[0]-1)-ar[-2]+2) + '-'*((ar[0]-1)-1)
+    # print(y)
+    # print('t_second =',t_second)
+    t_structure = '-'*(t_second[0]-1)
+    for i in range(len(t_second-1)//4):
+        t_structure += 'O'*(t_second[1+4*i]-t_second[0+4*i]+2) + '-'*(t_second[2+4*i]-t_second[1+4*i]-1) + 'o'*(t_second[3+4*i]-t_second[2+4*i]) + '-'*(t_second[4+4*i]-t_second[3+4*i]-1)
+    t_structure += 'O'*(t_second[-1]-(t_second[0]-1)-t_second[-2]+2) + '-'*((t_second[0]-1)-1)
+
+    return t_structure
+# ar_line = getStructure(t_second)
+# print(ar_line)
+# print(tRNA_t)
+# print(tRNA_s)
+
+def get_all_structure(ar_line, tRNA_t, tRNA_s):
+    # 进出大小圈时：
+    # b：配对位点，进大圈
+    # d：配对位点，出大圈
+    # p：配对位点，进小圈
+    # q：配对位点，出小圈
+    struc_bdpq=[]
+    for i,j in enumerate(ar_line):
+        if j == 'O' :
+            if ar_line[i-1]=='-' or ar_line[i-1]=='o':
+                struc_bdpq.append('b')
+                continue
+            elif ar_line[i+1]=='-'or ar_line[i+1]=='o':
+                struc_bdpq.append('d')
+                continue
+        elif j == 'o':
+            if ar_line[i-1]=='-'or ar_line[i-1]=='O':
+                struc_bdpq.append('p')
+                continue
+            elif ar_line[i+1]=='-'or ar_line[i+1]=='O':
+                struc_bdpq.append('q')
+                continue
+        struc_bdpq.append(ar_line[i])
+    struc_bdpq = ''.join(struc_bdpq)
+    
+    # 直线上有不配对的出现时：
+    # v：直线上，配对 -> 非配对时
+    # c: 直线上，连续非配对，第一个
+    # e：直线上，连续非配对，最后一个
+    # z：直线上，非配对 -> 配对时
+    # r：出小圈点，配对 -> 非配对时
+    # s：出大圈点，配对 -> 非配对时
+    struc_vzrs = list(struc_bdpq)
+    length_tRNA = len(tRNA_t)-1
+    for i,j in enumerate(tRNA_t):
+        if i > 0:
+            if j == '.' and ar_line[i] == '-':
+                if 1< i < length_tRNA and (tRNA_t[i+1] == '.' or tRNA_t[i-1] == '.') and tRNA_t[i-1] != tRNA_t[i+1]:
+                    struc_vzrs[i] = 'e'
+                elif tRNA_t[i-1] == '.' and tRNA_t[i+1] == '.':
+                    struc_vzrs[i] = '-'
+                else:
+                    struc_vzrs[i] = 'z'
+                if ar_line[i-1]== '-' and (tRNA_t[i-1] != '.'or i == 1):
+                    struc_vzrs[i-1] = 'v'
+                elif ar_line[i-1]== 'o':
+                    struc_vzrs[i-1] = 'r'
+                elif ar_line[i-1]== 'O':
+                    struc_vzrs[i-1] = 's'
+                if i < length_tRNA:
+                    if ar_line[i+1]== '-'and tRNA_t[i+1] != '.' :
+                        struc_vzrs[i+1] = 'v'
+                    elif ar_line[i+1]== 'o':
+                        struc_vzrs[i+1] = 'r'
+                    elif ar_line[i+1]== 'O':
+                        struc_vzrs[i+1] = 's'
+                    
+#     struc_vzrs[0] = '-'
+    struc_vzrs = ''.join(struc_vzrs)
+    return struc_vzrs
+
+# print(get_all_structure(ar_line, tRNA_t,tRNA_s))
+
+
+def getpair(site,Olocus,tRNA_s):
+    for i in range(len(Olocus)):
+        o = i
+        if site>=Olocus[o][0] and site<Olocus[o][1]:
+            # print(t[Olocus[o][0]:Olocus[o][1]])
+            # print(Olocus[o][1]+Olocus[o][0]-site-1)
+            return tRNA_s[Olocus[o][1]+Olocus[o][0]-site-1]
+    if site<Olocus[0][0] or site>Olocus[-1][-1]:
+        return tRNA_s[-site]   
+# Olocus = oOlocus(tRNA_t)[2]
+# print(getpair(7,Olocus,tRNA_s))
+
+
+def complementary_bond_site(ar_line, tRNA_t, tRNA_s, Olocus):
+    ar_line_bond = []
+    print(type(ar_line_bond))
+    for i, letter in enumerate(tRNA_s):
+        if tRNA_t[i] == '(':
+            if letter == 'A' or letter == 'U':
+                ar_line_bond.append('2')
+            elif letter == 'C':
+                ar_line_bond.append('3')
+            elif letter =='G':
+                # print(getpair(base_num,Olocus,s))
+                if 'C'== getpair(i, Olocus, tRNA_s):
+                    ar_line_bond.append('3')
+                elif 'U'== getpair(i, Olocus, tRNA_s):
+                    ar_line_bond.append('2')
+        else:
+            # ar_line_bond.append(ar_line[i])
+            ar_line_bond.append('0')
+    ar_line_bond = ''.join(ar_line_bond)
+    
+    return ar_line_bond
+
+# Olocus = oOlocus(tRNA_t)[2]
+
+# print(complementary_bond_site(ar_line, tRNA_t, tRNA_s, Olocus))
+# print(tRNA_t)
+# print(tRNA_s)
+
+
+def getOangle(ar_line):
+    num = ar_line.count('O')
+    # print(num)
+    return 360/num
+# print(getOangle(ar_line))
+
+# olocus = oOlocus(tRNA_t)[1]
+# print(olocus)
+# site = 19
+
+def getoangle(site,olocus):
+    for i in range(len(olocus)):
+        o = i
+        if site>=olocus[o][0] and site<=olocus[o][1]:
+            # print(t[olocus[o][0]:olocus[o][1]])
+            return 360/(olocus[o][1]-olocus[o][0])
+# print(getoangle(site=site, olocus=olocus))
+
+
+# unit plot
+def first_unit_plot(coodinate, facecolor, length_bp, space_angle, absolute_angle, base_letter, bond_number):
+    # 结构线
+    tRNA_clover_frame_unit(coodinate, 30, color='#888888', linewidth=15.0, absolute_angle=absolute_angle)
+    # 配对
+    base_complementary(bond_number=bond_number, coodinate=coodinate, length_bp=30, color='r', linewidth=4.0, spacewidth=1.5, space_angle=90, absolute_angle=space_angle+90, )
+#     圆
+    circle_base=plt.Circle(coodinate, radius=12, facecolor=facecolor, alpha=1, lw=10, edgecolor='#aaaaaa', zorder=2)
+    plt.gcf().gca().add_artist(circle_base)
+    # 字母
+    if base_letter == 'A':
+        x_correction, y_correction = -6.5, -6
+    elif base_letter == 'U':
+        x_correction, y_correction = -6.4, -7
+    elif base_letter == 'C':
+        x_correction, y_correction = -6.7, -6.8
+    elif base_letter == 'G':
+        x_correction, y_correction = -7.4, -6.6
+    plt.text(coodinate[0]+x_correction, coodinate[1]+y_correction, base_letter, fontsize=100, color='w', family='arial', weight='bold',)
+    
+# unit plot
+def unit_plot(coodinate, facecolor, length_bp, space_angle, absolute_angle, base_letter, bond_number):
+    # 结构线
+    tRNA_clover_frame_unit(coodinate, length_bp = length_bp, color='#888888', linewidth=15, absolute_angle=absolute_angle)
+    # 配对
+    base_complementary(bond_number=bond_number, coodinate=coodinate, length_bp=length_bp, color='r', linewidth=4.0, spacewidth=1.5, space_angle=space_angle, absolute_angle=space_angle+90,  )
+    # 圆
+    circle_base=plt.Circle(coodinate, radius=12, facecolor=facecolor, alpha=1, lw=10, edgecolor='#aaaaaa', zorder=2)
+    plt.gcf().gca().add_artist(circle_base)
+    # 字母
+    if base_letter == 'A':
+        x_correction, y_correction = -6.5, -6
+    elif base_letter == 'U':
+        x_correction, y_correction = -6.4, -7
+    elif base_letter == 'C':
+        x_correction, y_correction = -6.7, -6.8
+    elif base_letter == 'G':
+        x_correction, y_correction = -7.4, -6.6
+    plt.text(coodinate[0]+x_correction, coodinate[1]+y_correction, base_letter, fontsize=100, color='w', family='arial', weight='bold',)
+
+
+def tRNA_plot(start=(340,580), tRNA_s=None, tRNA_t=None):
+        # 总共分为两步
+    # 1、获取序列全部信息
+    t_second = oOlocus(tRNA_t)[0]
+    ar_line = getStructure(t_second)
+    final_structure = get_all_structure(ar_line, tRNA_t, tRNA_s)
+    olocus = oOlocus(tRNA_t)[1]
+    Olocus = oOlocus(tRNA_t)[2]
+    bond_structure = complementary_bond_site(ar_line, tRNA_t, tRNA_s, Olocus)
+    print(ar_line)
+    print(final_structure)
+    print(bond_structure)
+    print()
+    
+    # 2、根据序列信息，开始绘图
+    page_set(figsize=(60,60), limsize=(600,600))
+    red='#ff7975'
+    green='#27b01c'
+    blue='#3695ec'
+    yellow='#f4a801'
+    coo = start
+    move_angle = 90
+    space_angle = 90
+    tRNA_len = len(tRNA_s)-1
+    # 移动坐标
+    for i,base_letter in enumerate(tRNA_s):
+
+        # 直线拐弯角度设置
+        if final_structure[i] == 'v':
+            move_angle += -30
+            if i <tRNA_len and  (final_structure[i+1] == 'z' or final_structure[i+1] == 'e'):
+                space_angle = move_angle + 30
+#                 elif final_structure[i-1] == 'z':
+#                     space_angle = move_angle
+        elif final_structure[i] == 'z':
+            move_angle += 60
+        elif final_structure[i] == 'b':
+            move_angle += -90 + getOangle(ar_line)
+
+        elif final_structure[i] == 'O':
+            move_angle += getOangle(ar_line)
+        elif final_structure[i] == 'd':
+            move_angle += -90 + getOangle(ar_line)
+            space_angle = move_angle
+        elif final_structure[i] == 's':
+            move_angle += -120 + getOangle(ar_line)
+            if  i <tRNA_len and (final_structure[i+1] == 'z' or final_structure[i+1] == 'e'):
+                space_angle = move_angle + 30
+        elif final_structure[i] == 'p':
+            move_angle += -90 + getoangle(site=i,olocus=olocus)
+
+        elif final_structure[i] == 'o':
+            move_angle += getoangle(site=i,olocus=olocus)
+        elif final_structure[i] == 'q':
+            move_angle += -90 + getoangle(site=i,olocus=olocus)
+
+        elif final_structure[i] == 'r':
+            move_angle += -120 + getoangle(site=i,olocus=olocus)
+        elif final_structure[i] == 'e':
+            move_angle += 30
+        # 首尾位点参数设置
+        if i == 0:
+            length_bp = 30
+            bond_number=0
+        elif i == tRNA_len:
+            length_bp = 0.1
+            bond_number = int(bond_structure[i])
+        else:
+            length_bp = 30
+            bond_number = int(bond_structure[i])
+        
+        # 颜色设置
+        if tRNA_t[i]=='.' and ar_line[i]=='-':
+            facecolor=yellow
+        elif ar_line[i]=='-' or final_structure[i] in 'bdpqs':
+            facecolor=green
+        elif ar_line[i]=='o':
+            facecolor=blue
+        elif ar_line[i]=='O':
+            facecolor=red
+        unit_plot(coodinate=coo, facecolor=facecolor, length_bp=length_bp, space_angle=space_angle, absolute_angle=move_angle, base_letter=base_letter, bond_number=bond_number)
+        coo = coodinate_moving_by_angle(coodinate=coo, move_length=length_bp, move_absolute_angle=move_angle, )
+    # 删四周
+    remove_outline()
+#     plt.savefig(out_file_path)
+
+
+# tRNA_s = 'UCUCUUAUAGGCUAAGCUUGCCUACAAUCAUCUGGUAUGAUUUUAUUCAAAGUUCGAAUAGCGAUAUUUGGUGAGUCGGUUAAGAG'
+# tRNA_t = '.(((((((((((.......)))))..((......)).......(((((.......))))).((((.........))))..))))))'
+
+# tRNA_plot(start=(340,580), tRNA_s=tRNA_s, tRNA_t=tRNA_t)
+# plt.savefig(os.path.join('D:/Zesk/work/database/LiuYF/2020_08_08',"jhmg.svg"))
+
+
+# 读入文件
+# 批量作图，存入文件夹
+def main_file(infile,outforder=False):
+    if outforder==False:
+        outforder = infile.rstrip('.csv')
+    if not os.path.exists(outforder):
+        os.makedirs(outforder)
+    
+    file = pd.read_csv(infile)
+    file_shape = file.shape
+    for i in range(file_shape[0]):
+        tRNA_plot(start=(340,580), tRNA_s=file.iloc[i,2], tRNA_t=file.iloc[i,3])
+
+        plt.savefig(os.path.join(outforder,'{}_{}.svg'.format(i,file.iloc[i,1])))
+
+        
+# infile_path = 'D:/Zesk/work/mitochondrial/LiuYF/2020_03_31/LiuYFdrawtrna/outputfolder/labdata_now/tRNA_str/Cladosporium_sphaerospermum_1.csv'
+# infile_path = 'D:/Zesk/work/mitochondrial/LiuYF/2020_04_02/Tolypocladium_inflatum_YFCC_881B/outputfolder/labdata_now/tRNA_str/Tolypocladium_inflatum_YFCC_881B.csv'
+# main_file(infile=infile_path)
+
+
+def main_folder(infolder,outforder=False):
+    if outforder==False:
+        outforder = infolder
+    files_all = os.listdir(infolder)
+    files_csv = []
+    for file in files_all:
+        if file.endswith('.csv'):
+            files_csv.append(file)
+    print(files_csv)
+    for file in files_csv:
+        main_file(infile=os.path.join(infolder,file), outforder=os.path.join(outforder,file.rstrip('.csv')))
